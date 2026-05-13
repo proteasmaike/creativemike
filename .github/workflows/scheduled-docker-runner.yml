@@ -13,30 +13,18 @@ jobs:
   run-docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout current repo
-        uses: actions/checkout@v4
-
-      - name: Checkout op6 repo
-        uses: actions/checkout@v4
-        with:
-          repository: proteasmaike/op6
-          path: op6
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image from op6
+      - name: Pull image from GHCR
         run: |
-          cd op6
-          docker build -t op6-image:latest .
-
+          docker pull proteasmaike/op6
       - name: Run Docker container with NET_ADMIN and /dev/net/tun
         run: |
           docker run \
             --cap-add=NET_ADMIN \
             --device=/dev/net/tun \
             --rm \
-            op6-image:latest
+            proteasmaike/op6
 
       - name: Trigger next workflow run
         uses: actions/github-script@v7
