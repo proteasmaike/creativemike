@@ -1,0 +1,51 @@
+name: Scheduled Docker Runner
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  run-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current repo
+        uses: actions/checkout@v4
+
+      - name: Checkout op6 repo
+        uses: actions/checkout@v4
+        with:
+          repository: proteasmaike/op6
+          path: op6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image from op6
+        run: |
+          cd op6
+          docker build -t op6-image:latest .
+
+      - name: Run Docker container with NET_ADMIN and /dev/net/tun
+        run: |
+          docker run \
+            --cap-add=NET_ADMIN \
+            --device=/dev/net/tun \
+            --rm \
+            op6-image:latest
+
+      - name: Trigger next workflow run
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'scheduled-docker-runner.yml',
+              ref: context.ref
+            });
